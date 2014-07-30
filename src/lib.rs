@@ -26,6 +26,13 @@ impl<T> Inner<T> {
             Unevaluated(_) => fail!("Unwrapped an unevaluated inner thunk.")
         }
     }
+
+    fn unwrap_mut<'a>(&'a mut self) -> &'a mut T {
+        match *self {
+            Evaluated(ref mut val) => val,
+            Unevaluated(_) => fail!("Unwrapped an unevaluated inner thunk.")
+        }
+    }
 }
 
 impl<T> Thunk<T> {
@@ -47,6 +54,21 @@ impl<T> Deref<T> for Thunk<T> {
             }
         }
         unsafe { (*self.inner).unwrap() }
+    }
+}
+
+impl<T> DerefMut<T> for Thunk<T> {
+    fn deref_mut<'a>(&'a mut self) -> &'a mut T {
+        let inner = unsafe { replace(self.inner, uninitialized()) };
+        match inner {
+            Evaluated(val) => unsafe {
+                *self.inner = Evaluated(val);
+            },
+            Unevaluated(producer) => unsafe {
+                *self.inner = Evaluated(producer());
+            }
+        }
+        unsafe { (*self.inner).unwrap_mut() }
     }
 }
 
