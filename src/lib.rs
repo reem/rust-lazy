@@ -9,6 +9,9 @@
 use std::mem::{transmute, uninitialized, forget};
 use std::ptr::{replace, copy_nonoverlapping_memory};
 
+/// A sometimes-cleaner name for a lazily evaluated value.
+pub type Lazy<T> = Thunk<T>;
+
 /// A lazily evaluated value.
 pub struct Thunk<T> {
     inner: *mut Inner<T>,
@@ -29,12 +32,25 @@ impl<T> Thunk<T> {
 
     /// Force evaluation of a thunk.
     pub fn force(&self) {
-        let mut inner = unsafe { uninitialized() };
-        unsafe { copy_nonoverlapping_memory(&mut inner, self.inner as *const Inner<T>, 1) };
-        match inner {
-            Evaluated(val) => unsafe { forget(val) },
-            Unevaluated(producer) => unsafe {
-                forget(replace(self.inner, Evaluated(producer())));
+        unsafe {
+            let mut inner = uninitialized();
+            copy_nonoverlapping_memory(&mut inner, self.inner as *const Inner<T>, 1);
+            match inner {
+                Evaluated(val) => { forget(val) },
+                Unevaluated(producer) => {
+                    forget(replace(self.inner, Evaluated(producer())));
+                }
+            }
+        }
+    }
+
+    /// Force the evaluation of a thunk and get the value, consuming the thunk.
+    pub fn unwrap(self) -> T {
+        self.force();
+        unsafe {
+            match *transmute::<*mut Inner<T>, Box<Inner<T>>>(self.inner) {
+                Evaluated(val) => { forget(self); val },
+                _ => unreachable!()
             }
         }
     }

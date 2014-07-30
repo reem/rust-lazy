@@ -42,3 +42,8 @@ fn test_call_mutable_trait_methods() {
     val.mutable_borrow_method();
 }
 
+#[test]
+fn test_unwrap() {
+    let val = lazy!(7u);
+    assert_eq!(val.unwrap(), 7u);
+}
