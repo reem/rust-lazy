@@ -18,7 +18,7 @@ pub struct Thunk<T> {
     inner: UnsafeCell<Inner<T>>,
 }
 
-#[macro_exports]
+#[macro_export]
 macro_rules! lazy (
     ($e:expr) => {
         Thunk::new(proc() { $e })
