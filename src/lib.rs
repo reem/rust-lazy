@@ -19,11 +19,34 @@ enum Inner<T> {
     Unevaluated(proc() -> T)
 }
 
+impl<T> Inner<T> {
+    fn unwrap<'a>(&'a self) -> &'a T {
+        match *self {
+            Evaluated(ref val) => val,
+            Unevaluated(_) => fail!("Unwrapped an unevaluated inner thunk.")
+        }
+    }
+}
 
 impl<T> Thunk<T> {
     /// Create a lazily evaluated value from a proc that returns that value.
     pub fn new(producer: proc() -> T) -> Thunk<T> {
         Thunk { inner: unsafe { transmute(box Unevaluated(producer)) } }
+    }
+}
+
+impl<T> Deref<T> for Thunk<T> {
+    fn deref<'a>(&'a self) -> &'a T {
+        let inner = unsafe { replace(self.inner, uninitialized()) };
+        match inner {
+            Evaluated(val) => unsafe {
+                *self.inner = Evaluated(val);
+            },
+            Unevaluated(producer) => unsafe {
+                *self.inner = Evaluated(producer());
+            }
+        }
+        unsafe { (*self.inner).unwrap() }
     }
 }
 
