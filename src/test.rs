@@ -16,6 +16,13 @@ use std::sync::{Arc, Mutex};
     assert_eq!(*counter_clone.lock(), 1i);
 }
 
+#[test] fn test_doesnt_evaluate_if_not_accessed() {
+    let counter = Arc::new(Mutex::new(0i));
+    let counter_clone = counter.clone();
+    let _val = lazy!(*counter.lock() += 1);
+    assert_eq!(*counter_clone.lock(), 0i);
+}
+
 //trait ImmutableReferenceTrait {
 //    fn borrow_method(&self) { () }
 //}
