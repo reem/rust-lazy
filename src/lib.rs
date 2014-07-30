@@ -2,7 +2,7 @@
  #![deny(missing_doc)]
  #![deny(warnings)]
 
-//! Crate comment goes here
+#![feature(unsafe_destructor)]
 
 //! Lazy evaluation for Rust.
 
@@ -72,4 +72,11 @@ impl<T> DerefMut<T> for Thunk<T> {
     }
 }
 
+#[unsafe_destructor]
+impl<T> Drop for Thunk<T> {
+    fn drop(&mut self) {
+        let inner: Box<Inner<T>> = unsafe { transmute(self.inner) };
+        drop(inner);
+    }
+}
 
