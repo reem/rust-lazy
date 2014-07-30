@@ -32,9 +32,7 @@ impl<T> Thunk<T> {
         let mut inner = unsafe { uninitialized() };
         unsafe { copy_nonoverlapping_memory(&mut inner, self.inner as *const Inner<T>, 1) };
         match inner {
-            Evaluated(val) => unsafe {
-                forget(replace(self.inner, Evaluated(val)));
-            },
+            Evaluated(val) => unsafe { forget(val) },
             Unevaluated(producer) => unsafe {
                 forget(replace(self.inner, Evaluated(producer())));
             }
@@ -47,33 +45,23 @@ enum Inner<T> {
     Unevaluated(proc() -> T)
 }
 
-impl<T> Inner<T> {
-    fn unwrap<'a>(&'a self) -> &'a T {
-        match *self {
-            Evaluated(ref val) => val,
-            Unevaluated(_) => fail!("Unwrapped an unevaluated inner thunk.")
-        }
-    }
-
-    fn unwrap_mut<'a>(&'a mut self) -> &'a mut T {
-        match *self {
-            Evaluated(ref mut val) => val,
-            Unevaluated(_) => fail!("Unwrapped an unevaluated inner thunk.")
-        }
-    }
-}
-
 impl<T> Deref<T> for Thunk<T> {
     fn deref<'a>(&'a self) -> &'a T {
         self.force();
-        unsafe { (*self.inner).unwrap() }
+        match unsafe { &*self.inner } {
+            &Evaluated(ref val) => val,
+            _ => unreachable!()
+        }
     }
 }
 
 impl<T> DerefMut<T> for Thunk<T> {
     fn deref_mut<'a>(&'a mut self) -> &'a mut T {
         self.force();
-        unsafe { (*self.inner).unwrap_mut() }
+        match unsafe { &mut *self.inner } {
+            &Evaluated(ref mut val) => val,
+            _ => unreachable!()
+        }
     }
 }
 
@@ -84,4 +72,7 @@ impl<T> Drop for Thunk<T> {
         drop(inner);
     }
 }
+
+#[cfg(test)]
+mod test;
 
