@@ -2,14 +2,12 @@ use super::Thunk;
 
 use std::sync::{Arc, Mutex};
 
-#[test]
-fn test_evaluates() {
+#[test] fn test_evaluates() {
     let val = lazy!(7i);
     assert_eq!(*val, 7i);
 }
 
-#[test]
-fn test_evaluates_just_once() {
+#[test] fn test_evaluates_just_once() {
     let counter = Arc::new(Mutex::new(0i));
     let counter_clone = counter.clone();
     let val = lazy!(*counter.lock() += 1);
@@ -36,14 +34,19 @@ trait MutableReferenceTrait {
 
 impl MutableReferenceTrait for uint {}
 
-#[test]
-fn test_call_mutable_trait_methods() {
+#[test] fn test_call_mutable_trait_methods() {
     let mut val = lazy!(7u);
     val.mutable_borrow_method();
 }
 
-#[test]
-fn test_unwrap() {
+#[test] fn test_unwrap() {
     let val = lazy!(7u);
     assert_eq!(val.unwrap(), 7u);
 }
+
+#[should_fail]
+#[test] fn test_fail() {
+    let val: Thunk<Box<int>> = lazy!(fail!("Failed!"));
+    val.force();
+}
+
