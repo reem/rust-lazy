@@ -30,8 +30,8 @@ Takes a proc, creates a delayed computation.
 
 > `Thunk::force()`
 
-Forces the evaluation of the thunk so subsequent accesses are cheap. The value
-is heap allocated.
+Forces the evaluation of the thunk so subsequent accesses are cheap. Values are
+stored unboxed.
 
 > `Thunk::unwrap()`
 
