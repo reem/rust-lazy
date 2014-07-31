@@ -6,9 +6,8 @@
 
 //! Lazy evaluation for Rust.
 
-use std::mem::{uninitialized, forget};
-use std::ptr::{replace, copy_nonoverlapping_memory};
 use std::cell::UnsafeCell;
+use std::ptr;
 
 /// A sometimes-cleaner name for a lazily evaluated value.
 pub type Lazy<T> = Thunk<T>;
@@ -34,14 +33,11 @@ impl<T> Thunk<T> {
     /// Force evaluation of a thunk.
     pub fn force(&self) {
         unsafe {
-            let mut inner = uninitialized();
-            copy_nonoverlapping_memory(&mut inner, self.inner.get() as *const Inner<T>, 1);
-            match inner {
-                Evaluated(val) => { forget(val) },
-                Unevaluated(producer) => {
-                    forget(replace(self.inner.get(), Evaluated(producer())));
-                }
-            }
+            let producer = match *self.inner.get() {
+                Evaluated(_) => return,
+                Unevaluated(ref p) => ptr::read(p)
+            };
+            ptr::write(self.inner.get(), Evaluated(producer()));
         }
     }
 
