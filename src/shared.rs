@@ -29,6 +29,14 @@ impl<T: Send + Share> SharedThunk<T> {
         // Get a write lock for the entire evaluation period.
         let mut write_lock = self.inner.write();
 
+        match *write_lock {
+            // If two threads try to call force at the same time,
+            // then the write locks may be queued up and inner may
+            // have been evaluated already.
+            Evaluated(_) => return,
+            _ => ()
+        }
+
         // Set the status to EvaluationInProgress
         match mem::replace(&mut *write_lock, EvaluationInProgress) {
             // Get the producer, evaluate it.
