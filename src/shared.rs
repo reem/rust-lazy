@@ -21,7 +21,11 @@ impl<T: Send + Share> SharedThunk<T> {
         match *self.inner.read() {
             // Already forced. We're done and only took a read lock.
             Evaluated(_) => return,
+
+            // Can't happen because this requires someone else to have
+            // a write lock at the same time.
             EvaluationInProgress => unreachable!(),
+
             // First ones here. Evaluate.
             Unevaluated(_) => ()
         }
@@ -41,6 +45,8 @@ impl<T: Send + Share> SharedThunk<T> {
         match mem::replace(&mut *write_lock, EvaluationInProgress) {
             // Get the producer, evaluate it.
             Unevaluated(producer) => *write_lock = Evaluated(producer()),
+
+            // We checked these possibilities earlier.
             _ => unreachable!()
         };
     }
@@ -51,9 +57,12 @@ impl<T: Send + Share> DerefMut<T> for SharedThunk<T> {
         self.force();
         match &mut *self.inner.write() {
             // Safe because getting this &'a mut T requires &'a mut self.
+            //
             // We can't use copy_mut_lifetime here because self is already
             // borrowed as &mut by self.inner.write().
             &Evaluated(ref mut val) => unsafe { mem::transmute(val) },
+
+            // We just forced this thunk.
             _ => unreachable!()
         }
     }
@@ -65,6 +74,8 @@ impl<T: Send + Share> Deref<T> for SharedThunk<T> {
         match *self.inner.read() {
             // Safe because getting this &'a T requires &'a self.
             Evaluated(ref val) => unsafe { mem::copy_lifetime(self, val) },
+
+            // We just forced this thunk.
             _ => unreachable!()
         }
     }
