@@ -8,6 +8,7 @@
 
 use std::cell::UnsafeCell;
 use std::ptr;
+use std::kinds::marker;
 
 /// A sometimes-cleaner name for a lazily evaluated value.
 pub type Lazy<T> = Thunk<T>;
@@ -15,6 +16,7 @@ pub type Lazy<T> = Thunk<T>;
 /// A lazily evaluated value.
 pub struct Thunk<T> {
     inner: UnsafeCell<Inner<T>>,
+    noshare: marker::NoShare
 }
 
 #[macro_export]
@@ -27,7 +29,7 @@ macro_rules! lazy (
 impl<T> Thunk<T> {
     /// Create a lazily evaluated value from a proc that returns that value.
     pub fn new(producer: proc() -> T) -> Thunk<T> {
-        Thunk { inner: UnsafeCell::new(Unevaluated(producer)) }
+        Thunk { inner: UnsafeCell::new(Unevaluated(producer)), noshare: marker::NoShare }
     }
 
     /// Force evaluation of a thunk.
