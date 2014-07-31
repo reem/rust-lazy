@@ -33,11 +33,18 @@ impl<T> Thunk<T> {
     /// Force evaluation of a thunk.
     pub fn force(&self) {
         unsafe {
-            let producer = match *self.inner.get() {
+            match *self.inner.get() {
                 Evaluated(_) => return,
-                Unevaluated(ref p) => ptr::read(p)
+                EvaluationInProgress => {
+                    fail!("Thunk::force called recursively. (A Thunk tried to force itself while trying to force itself).")
+                },
+                Unevaluated(_) => ()
+            }
+
+            match ptr::replace(self.inner.get(), EvaluationInProgress) {
+                Unevaluated(producer) => *self.inner.get() = Evaluated(producer()),
+                _ => unreachable!()
             };
-            ptr::write(self.inner.get(), Evaluated(producer()));
         }
     }
 
@@ -55,6 +62,7 @@ impl<T> Thunk<T> {
 
 enum Inner<T> {
     Evaluated(T),
+    EvaluationInProgress,
     Unevaluated(proc() -> T)
 }
 
