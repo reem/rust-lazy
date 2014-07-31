@@ -38,6 +38,26 @@ impl<T: Send + Share> SharedThunk<T> {
     }
 }
 
+impl<T: Send + Share> DerefMut<T> for SharedThunk<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        self.force();
+        match &mut *self.inner.write() {
+            // Safe because getting this &'a mut T requires &'a mut self.
+            // We can't use copy_mut_lifetime here because self is already
+            // borrowed as &mut by self.inner.write().
+            &Evaluated(ref mut val) => unsafe { mem::transmute(val) },
+            _ => unreachable!()
+        }
+    }
+}
+
+impl<T: Send + Share> Deref<T> for SharedThunk<T> {
+    fn deref(&self) -> &T {
+        self.force();
+        match *self.inner.read() {
+            // Safe because getting this &'a T requires &'a self.
+            Evaluated(ref val) => unsafe { mem::copy_lifetime(self, val) },
+            _ => unreachable!()
         }
     }
 }
