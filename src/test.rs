@@ -1,6 +1,7 @@
 use super::Thunk;
 
 use std::sync::{Arc, Mutex};
+use std::task;
 
 #[test] fn test_evaluates() {
     let val = lazy!(7i);
@@ -51,9 +52,33 @@ impl MutableReferenceTrait for uint {}
     assert_eq!(val.unwrap(), 7u);
 }
 
-#[should_fail]
-#[test] fn test_fail() {
-    let val: Thunk<Box<int>> = lazy!(fail!("Failed!"));
-    val.force();
+pub struct Dropper(Arc<Mutex<u64>>);
+
+impl Drop for Dropper {
+    fn drop(&mut self) {
+        let Dropper(ref count) = *self;
+        *count.lock() += 1;
+        assert!(task::failing())
+    }
+}
+
+#[test] fn test_calls_destructor_once() {
+    let counter = Arc::new(Mutex::new(0u64));
+    let counter_clone = counter.clone();
+    match task::try(proc() {
+        let value = Dropper(counter_clone);
+        let t = Thunk::<()>::new(proc() {
+            // Get a reference so value is captured.
+            let _x = &value;
+
+            fail!("Muahahahah")
+        });
+        t.force();
+    }) {
+        Err(_) => {
+            assert_eq!(*counter.lock(), 1);
+        },
+        _ => ()
+    }
 }
 
