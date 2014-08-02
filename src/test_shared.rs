@@ -27,6 +27,11 @@ use std::sync::{Arc, Mutex};
     let _ = Arc::new(shared_lazy!(0u));
 }
 
+#[test] fn test_evaluated() {
+    let x = SharedThunk::evaluated(10u);
+    assert_eq!(*x, 10u);
+}
+
 // Shared is all safe code, so no need to test
 // destructor calls.
 

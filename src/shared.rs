@@ -15,6 +15,11 @@ impl<T: Send + Share> SharedThunk<T> {
         SharedThunk { inner: RWLock::new(Unevaluated(producer)) }
     }
 
+    /// Create a new, evaluated, thunk from a value.
+    pub fn evaluated(val: T) -> SharedThunk<T> {
+        SharedThunk { inner: RWLock::new(Evaluated(val)) }
+    }
+
     /// Force evaluation of a thunk.
     pub fn force(&self) {
         // Take out only a read lock.

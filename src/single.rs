@@ -17,6 +17,11 @@ impl<T> Thunk<T> {
         Thunk { inner: UnsafeCell::new(Unevaluated(producer)), noshare: marker::NoShare }
     }
 
+    /// Create a new, evaluated, thunk from a value.
+    pub fn evaluated(val: T) -> Thunk<T> {
+        Thunk { inner: UnsafeCell::new(Evaluated(val)), noshare: marker::NoShare }
+    }
+
     /// Force evaluation of a thunk.
     pub fn force(&self) {
         unsafe {

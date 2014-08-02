@@ -8,6 +8,11 @@ use std::task;
     assert_eq!(*val, 7i);
 }
 
+#[test] fn test_evaluated() {
+    let x = Thunk::evaluated(10u);
+    assert_eq!(*x, 10u);
+}
+
 #[test] fn test_evaluates_just_once() {
     let counter = Arc::new(Mutex::new(0i));
     let counter_clone = counter.clone();
