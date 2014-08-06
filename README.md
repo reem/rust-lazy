@@ -44,3 +44,7 @@ Gets the value out of the thunk by evaluating the proc or grabbing it
 from the cache. Allows you to call methods on the thunk as if it was
 an instance of the contained valued through auto-deref.
 
+There is also an equivalent API for `SharedThunk`, which is `Share + Send` and
+usable for safe, concurrent laziness, except that they are created using
+`shared_lazy!` or by doing `use Thunk = lazy::SharedThunk` and using `lazy!`.
+
