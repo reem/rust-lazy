@@ -13,6 +13,16 @@ pub struct Thunk<T> {
 
 impl<T> Thunk<T> {
     /// Create a lazily evaluated value from a proc that returns that value.
+    ///
+    /// You can construct Thunk's manually using this, but the lazy! macro
+    /// is preferred.
+    ///
+    /// ```rust
+    /// # use lazy::Thunk;
+    /// let expensive = Thunk::new(proc() { println!("Evaluated!"); 7u });
+    /// assert_eq!(*expensive, 7u); // "Evaluated!" gets printed here.
+    /// assert_eq!(*expensive, 7u); // Nothing printed.
+    /// ```
     pub fn new(producer: proc() -> T) -> Thunk<T> {
         Thunk { inner: UnsafeCell::new(Unevaluated(producer)), noshare: marker::NoSync }
     }

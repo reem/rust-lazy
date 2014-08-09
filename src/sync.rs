@@ -4,13 +4,30 @@ use std::mem;
 /// A sometimes cleaner name.
 pub type SyncLazy<T> = SyncThunk<T>;
 
-/// Syncable, sendable lazy data.
+/// Sync, Send lazy data.
 pub struct SyncThunk<T> {
     inner: RWLock<SyncInner<T>>
 }
 
 impl<T: Send + Sync> SyncThunk<T> {
-    /// Create a new shared thunk.
+    /// Create a new sync thunk.
+    ///
+    /// You can construct SyncThunk's manually using this, but the 
+    /// sync_lazy! macro is preferred.
+    ///
+    /// ```rust
+    /// # use lazy::SyncThunk;
+    /// # use std::sync::Arc;
+    /// let expensive = SyncThunk::new(proc() { println!("Evaluated!"); 7u });
+    /// let reff = Arc::new(expensive);
+    /// let reff_clone = reff.clone();
+    ///
+    /// // Evaluated is printed sometime beneath this line.
+    /// spawn(proc() {
+    ///     assert_eq!(**reff_clone, 7u);
+    /// });
+    /// assert_eq!(**reff, 7u);
+    /// ```
     pub fn new(producer: proc(): Send + Sync -> T) -> SyncThunk<T> {
         SyncThunk { inner: RWLock::new(Unevaluated(producer)) }
     }

@@ -26,9 +26,3 @@ macro_rules! sync_lazy (
     }
 )
 
-#[cfg(test)]
-mod test_single;
-
-#[cfg(test)]
-mod test_sync;
-

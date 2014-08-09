@@ -1,4 +1,8 @@
-use super::SyncThunk;
+#![feature(phase)]
+#[phase(plugin, link)]
+extern crate lazy;
+
+use lazy::SyncThunk;
 
 use std::sync::{Arc, Mutex};
 
