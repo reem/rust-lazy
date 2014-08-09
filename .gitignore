@@ -1,4 +1,3 @@
-deps/
 .DS_Store
 *~
 *#
@@ -12,17 +11,8 @@ deps/
 *.dummy
 *.exe
 *-test
-/src/generated/mimes.txt
-/src/generated/mimegen
-/src/response/mimes/mod.rs
-/bin/main
-/bin/test-internal
-/bin/test-external
 /doc/
 /target/
-/build/
-/.rust/
-watch.sh
-rusti.sh
 /examples/*
 !/examples/*.rs
+Cargo.lock
