@@ -2,22 +2,22 @@ use std::sync::RWLock;
 use std::mem;
 
 /// A sometimes cleaner name.
-pub type SharedLazy<T> = SharedThunk<T>;
+pub type SyncLazy<T> = SyncThunk<T>;
 
-/// Shareable, sendable lazy data.
-pub struct SharedThunk<T> {
-    inner: RWLock<SharedInner<T>>
+/// Syncable, sendable lazy data.
+pub struct SyncThunk<T> {
+    inner: RWLock<SyncInner<T>>
 }
 
-impl<T: Send + Share> SharedThunk<T> {
+impl<T: Send + Sync> SyncThunk<T> {
     /// Create a new shared thunk.
-    pub fn new(producer: proc(): Send + Share -> T) -> SharedThunk<T> {
-        SharedThunk { inner: RWLock::new(Unevaluated(producer)) }
+    pub fn new(producer: proc(): Send + Sync -> T) -> SyncThunk<T> {
+        SyncThunk { inner: RWLock::new(Unevaluated(producer)) }
     }
 
     /// Create a new, evaluated, thunk from a value.
-    pub fn evaluated(val: T) -> SharedThunk<T> {
-        SharedThunk { inner: RWLock::new(Evaluated(val)) }
+    pub fn evaluated(val: T) -> SyncThunk<T> {
+        SyncThunk { inner: RWLock::new(Evaluated(val)) }
     }
 
     /// Force evaluation of a thunk.
@@ -57,7 +57,7 @@ impl<T: Send + Share> SharedThunk<T> {
     }
 }
 
-impl<T: Send + Share> DerefMut<T> for SharedThunk<T> {
+impl<T: Send + Sync> DerefMut<T> for SyncThunk<T> {
     fn deref_mut(&mut self) -> &mut T {
         self.force();
         match &mut *self.inner.write() {
@@ -73,7 +73,7 @@ impl<T: Send + Share> DerefMut<T> for SharedThunk<T> {
     }
 }
 
-impl<T: Send + Share> Deref<T> for SharedThunk<T> {
+impl<T: Send + Sync> Deref<T> for SyncThunk<T> {
     fn deref(&self) -> &T {
         self.force();
         match *self.inner.read() {
@@ -86,9 +86,9 @@ impl<T: Send + Share> Deref<T> for SharedThunk<T> {
     }
 }
 
-enum SharedInner<T> {
+enum SyncInner<T> {
     Evaluated(T),
     EvaluationInProgress,
-    Unevaluated(proc(): Send + Share -> T)
+    Unevaluated(proc(): Send + Sync -> T)
 }
 

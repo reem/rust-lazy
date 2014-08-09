@@ -7,10 +7,10 @@
 //! Lazy evaluation for Rust.
 
 pub use self::single::{Lazy, Thunk};
-pub use self::shared::{SharedLazy, SharedThunk};
+pub use self::sync::{SyncLazy, SyncThunk};
 
 mod single;
-mod shared;
+mod sync;
 
 #[macro_export]
 macro_rules! lazy (
@@ -20,9 +20,9 @@ macro_rules! lazy (
 )
 
 #[macro_export]
-macro_rules! shared_lazy (
+macro_rules! sync_lazy (
     ($e:expr) => {
-        SharedThunk::new(proc() { $e })
+        SyncThunk::new(proc() { $e })
     }
 )
 
@@ -30,5 +30,5 @@ macro_rules! shared_lazy (
 mod test_single;
 
 #[cfg(test)]
-mod test_shared;
+mod test_sync;
 

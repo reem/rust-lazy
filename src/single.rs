@@ -8,18 +8,18 @@ pub type Lazy<T> = Thunk<T>;
 /// A lazily evaluated value.
 pub struct Thunk<T> {
     inner: UnsafeCell<Inner<T>>,
-    noshare: marker::NoShare
+    noshare: marker::NoSync
 }
 
 impl<T> Thunk<T> {
     /// Create a lazily evaluated value from a proc that returns that value.
     pub fn new(producer: proc() -> T) -> Thunk<T> {
-        Thunk { inner: UnsafeCell::new(Unevaluated(producer)), noshare: marker::NoShare }
+        Thunk { inner: UnsafeCell::new(Unevaluated(producer)), noshare: marker::NoSync }
     }
 
     /// Create a new, evaluated, thunk from a value.
     pub fn evaluated(val: T) -> Thunk<T> {
-        Thunk { inner: UnsafeCell::new(Evaluated(val)), noshare: marker::NoShare }
+        Thunk { inner: UnsafeCell::new(Evaluated(val)), noshare: marker::NoSync }
     }
 
     /// Force evaluation of a thunk.
