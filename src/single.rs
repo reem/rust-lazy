@@ -23,7 +23,7 @@ impl<T> Thunk<T> {
     /// assert_eq!(*expensive, 7u); // "Evaluated!" gets printed here.
     /// assert_eq!(*expensive, 7u); // Nothing printed.
     /// ```
-    pub fn new(producer: proc() -> T) -> Thunk<T> {
+    pub fn new(producer: proc(): 'static -> T) -> Thunk<T> {
         Thunk { inner: UnsafeCell::new(Unevaluated(producer)), noshare: marker::NoSync }
     }
 
@@ -65,7 +65,7 @@ impl<T> Thunk<T> {
 enum Inner<T> {
     Evaluated(T),
     EvaluationInProgress,
-    Unevaluated(proc() -> T)
+    Unevaluated(proc(): 'static -> T)
 }
 
 impl<T> Deref<T> for Thunk<T> {
