@@ -4,8 +4,6 @@ name = "lazy"
 version = "0.3.0"
 authors = ["Jonathan Reem <jonathan.reem@gmail.com>"]
 
-[lib]
-
-name = "lazy"
-path = "src/lib.rs"
+[dev-dependencies.stainless]
+git = "https://github.com/reem/stainless"
 
