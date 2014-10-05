@@ -87,7 +87,7 @@ impl Drop for Dropper {
         Err(_) => {
             assert_eq!(*counter.lock(), 1);
         },
-        _ => ()
+        _ => faik!("Unexpected success in spawned task.")
     }
 }
 
