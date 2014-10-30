@@ -61,14 +61,14 @@ describe! thunk {
                     // Get a reference so value is captured.
                     let _x = &value;
 
-                    fail!("Muahahahah")
+                    panic!("Muahahahah")
                 });
                 t.force();
             }) {
                 Err(_) => {
                     assert_eq!(*counter.lock(), 1);
                 },
-                _ => fail!("Unexpected success in spawned task.")
+                _ => panic!("Unexpected success in spawned task.")
             }
         }
     }

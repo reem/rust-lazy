@@ -38,7 +38,7 @@ impl<T> Thunk<T> {
             match *self.inner.get() {
                 Evaluated(_) => return,
                 EvaluationInProgress => {
-                    fail!("Thunk::force called recursively. (A Thunk tried to force itself while trying to force itself).")
+                    panic!("Thunk::force called recursively. (A Thunk tried to force itself while trying to force itself).")
                 },
                 Unevaluated(_) => ()
             }

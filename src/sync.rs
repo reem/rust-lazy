@@ -12,7 +12,7 @@ pub struct SyncThunk<T> {
 impl<T: Send + Sync> SyncThunk<T> {
     /// Create a new sync thunk.
     ///
-    /// You can construct SyncThunk's manually using this, but the 
+    /// You can construct SyncThunk's manually using this, but the
     /// sync_lazy! macro is preferred.
     ///
     /// ```rust
