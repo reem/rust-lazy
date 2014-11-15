@@ -74,17 +74,17 @@ describe! thunk {
     }
 }
 
-//pub trait ImmutableReferenceTrait {
-//    fn borrow_method(&self) { () }
-//}
-//
-//impl ImmutableReferenceTrait for uint {}
-//
-//#[test]
-//fn test_call_trait_methods() {
-//    let val = lazy!(7u);
-//    val.borrow_method();
-//}
+pub trait ImmutableReferenceTrait {
+    fn borrow_method(&self) { () }
+}
+
+impl ImmutableReferenceTrait for uint {}
+
+#[test]
+fn test_call_trait_methods() {
+    let val = lazy!(7u);
+    val.borrow_method();
+}
 
 pub trait MutableReferenceTrait {
     fn mutable_borrow_method(&mut self) { () }
