@@ -2,6 +2,8 @@ use std::cell::UnsafeCell;
 use std::ptr;
 use std::kinds::marker;
 
+use self::Inner::{Evaluated, EvaluationInProgress, Unevaluated};
+
 /// A sometimes-cleaner name for a lazily evaluated value.
 pub type Lazy<T> = Thunk<T>;
 

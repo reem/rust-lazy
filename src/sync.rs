@@ -1,6 +1,8 @@
 use std::sync::RWLock;
 use std::mem;
 
+use self::SyncInner::{Evaluated, EvaluationInProgress, Unevaluated};
+
 /// A sometimes cleaner name.
 pub type SyncLazy<T> = SyncThunk<T>;
 
