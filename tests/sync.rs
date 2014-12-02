@@ -5,7 +5,8 @@ extern crate lazy;
 extern crate stainless;
 
 pub use lazy::sync::Thunk;
-pub use std::sync::{Arc, Mutex};
+pub use std::sync::{Arc, Barrier, Mutex};
+pub use std::{io, time};
 
 describe! sync {
     it "should evaluate when accessed" {
@@ -33,6 +34,23 @@ describe! sync {
         Arc::new(sync_lazy!(0u));
     }
 
+    it "should be safe to access while evaluating" {
+        let data = Arc::new(sync_lazy!({
+            io::timer::sleep(time::Duration::milliseconds(50));
+            5u
+        }));
+
+        let data_worker = data.clone();
+
+        // Worker task.
+        spawn(proc() {
+            data_worker.force();
+        });
+
+        // Try to access the data while it is evaulating.
+        assert_eq!(5u, **data);
+    }
+
     describe! evaluated {
         it "should create an already evaluated thunk" {
             let x = Thunk::evaluated(10u);
@@ -40,7 +58,4 @@ describe! sync {
         }
     }
 }
-
-// sync is all safe code, so no need to test
-// destructor calls.
 

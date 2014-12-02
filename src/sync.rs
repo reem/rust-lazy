@@ -58,8 +58,13 @@ impl<T: Send + Sync> Thunk<T> {
                     _ => unsafe { debug_unreachable!() }
                 }
             },
-            // Already forced, do nothing.
-            None => {}
+            // Already forced or forcing, so wait for the value
+            // if we need to.
+            //
+            // Unfortunately, we do not know if this is a
+            // recursive force, meaning this will cause a deadlock,
+            // or if we are waiting on another thread.
+            None => self.inner.wait()
         }
     }
 }
