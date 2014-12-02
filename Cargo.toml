@@ -1,8 +1,12 @@
 [package]
 
 name = "lazy"
-version = "0.3.2"
+version = "0.4.0"
 authors = ["Jonathan Reem <jonathan.reem@gmail.com>"]
+repository = "https://github.com/reem/rust-lazy"
+description = "Lazily evaluated types and macros."
+readme = "README.md"
+license = "MIT"
 
 [dependencies]
 debug_unreachable = "*"
