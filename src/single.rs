@@ -47,7 +47,7 @@ impl<T> Thunk<T> {
 
             match ptr::replace(self.inner.get(), EvaluationInProgress) {
                 Unevaluated(producer) => *self.inner.get() = Evaluated(producer()),
-                _ => unreachable!()
+                _ => debug_unreachable!()
             };
         }
     }
@@ -58,7 +58,7 @@ impl<T> Thunk<T> {
         unsafe {
             match self.inner.into_inner() {
                 Evaluated(val) => { val },
-                _ => unreachable!()
+                _ => debug_unreachable!()
             }
         }
     }
@@ -75,7 +75,7 @@ impl<T> Deref<T> for Thunk<T> {
         self.force();
         match unsafe { &*self.inner.get() } {
             &Evaluated(ref val) => val,
-            _ => unreachable!()
+            _ => unsafe { debug_unreachable!() }
         }
     }
 }
@@ -85,7 +85,7 @@ impl<T> DerefMut<T> for Thunk<T> {
         self.force();
         match unsafe { &mut *self.inner.get() } {
             &Evaluated(ref mut val) => val,
-            _ => unreachable!()
+            _ => unsafe { debug_unreachable!() }
         }
     }
 }
