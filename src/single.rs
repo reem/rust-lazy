@@ -20,7 +20,7 @@ impl<T> Thunk<T> {
     /// is preferred.
     ///
     /// ```rust
-    /// # use lazy::Thunk;
+    /// # use lazy::single::Thunk;
     /// let expensive = Thunk::new(proc() { println!("Evaluated!"); 7u });
     /// assert_eq!(*expensive, 7u); // "Evaluated!" gets printed here.
     /// assert_eq!(*expensive, 7u); // Nothing printed.
@@ -56,7 +56,7 @@ impl<T> Thunk<T> {
     pub fn unwrap(self) -> T {
         self.force();
         unsafe {
-            match self.inner.unwrap() {
+            match self.inner.into_inner() {
                 Evaluated(val) => { val },
                 _ => unreachable!()
             }

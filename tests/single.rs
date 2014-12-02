@@ -4,7 +4,7 @@ extern crate lazy;
 #[phase(plugin)]
 extern crate stainless;
 
-pub use lazy::Thunk;
+pub use lazy::single::Thunk;
 pub use std::sync::{Arc, Mutex};
 pub use std::task;
 

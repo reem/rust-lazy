@@ -4,7 +4,7 @@ extern crate lazy;
 #[phase(plugin)]
 extern crate stainless;
 
-pub use lazy::SyncThunk;
+pub use lazy::sync::Thunk;
 pub use std::sync::{Arc, Mutex};
 
 describe! sync {
@@ -35,7 +35,7 @@ describe! sync {
 
     describe! evaluated {
         it "should create an already evaluated thunk" {
-            let x = SyncThunk::evaluated(10u);
+            let x = Thunk::evaluated(10u);
             assert_eq!(*x, 10u);
         }
     }

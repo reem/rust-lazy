@@ -1,28 +1,32 @@
-#![license = "MIT"]
-#![deny(missing_docs)]
-#![deny(warnings)]
-
-#![feature(unsafe_destructor, macro_rules)]
+#![deny(missing_docs, warnings)]
+#![feature(unsafe_destructor, macro_rules, phase, globs)]
 
 //! Lazy evaluation for Rust.
 
-pub use self::single::{Lazy, Thunk};
-pub use self::sync::{SyncLazy, SyncThunk};
+#[phase(plugin)] extern crate debug_unreachable;
+extern crate oncemutex;
 
-mod single;
-mod sync;
+/// A Thunk safe for single-threaded access.
+pub mod single;
+
+/// A Thunk safe for multi-threaded use.
+pub mod sync;
+
+mod lazy {
+    pub use super::*;
+}
 
 #[macro_export]
 macro_rules! lazy (
     ($e:expr) => {
-        Thunk::new(proc() { $e })
+        ::lazy::single::Thunk::new(proc() { $e })
     }
 )
 
 #[macro_export]
 macro_rules! sync_lazy (
     ($e:expr) => {
-        SyncThunk::new(proc() { $e })
+        ::lazy::sync::Thunk::new(proc() { $e })
     }
 )
 
