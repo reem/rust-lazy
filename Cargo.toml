@@ -1,9 +1,13 @@
 [package]
 
 name = "lazy"
-version = "0.3.0"
+version = "0.3.2"
 authors = ["Jonathan Reem <jonathan.reem@gmail.com>"]
 
-[dev-dependencies.stainless]
-git = "https://github.com/reem/stainless"
+[dependencies]
+debug_unreachable = "*"
+oncemutex = "*"
+
+[dev-dependencies]
+stainless = "*"
 
