@@ -43,7 +43,7 @@ describe! sync {
         let data_worker = data.clone();
 
         // Worker task.
-        spawn(proc() {
+        spawn(move || {
             data_worker.force();
         });
 

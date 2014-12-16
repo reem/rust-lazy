@@ -1,6 +1,7 @@
 use std::cell::UnsafeCell;
 use std::ptr;
 use std::kinds::marker;
+use std::thunk::Invoke;
 
 use self::Inner::{Evaluated, EvaluationInProgress, Unevaluated};
 
@@ -21,13 +22,17 @@ impl<T> Thunk<T> {
     ///
     /// ```rust
     /// # use lazy::single::Thunk;
-    /// let expensive = Thunk::new(proc() { println!("Evaluated!"); 7u });
+    /// let expensive = Thunk::new(|| { println!("Evaluated!"); 7u });
     /// assert_eq!(*expensive, 7u); // "Evaluated!" gets printed here.
     /// assert_eq!(*expensive, 7u); // Nothing printed.
     /// ```
-    pub fn new(producer: proc(): 'static -> T) -> Thunk<T> {
-        Thunk { inner: UnsafeCell::new(Unevaluated(producer)), noshare: marker::NoSync }
+    pub fn new<F>(producer: F) -> Thunk<T>
+    where F: 'static + FnOnce() -> T {
+        Thunk {
+            inner: UnsafeCell::new(Unevaluated(Producer::new(producer))),
+            noshare: marker::NoSync }
     }
+
 
     /// Create a new, evaluated, thunk from a value.
     pub fn evaluated(val: T) -> Thunk<T> {
@@ -46,7 +51,7 @@ impl<T> Thunk<T> {
             }
 
             match ptr::replace(self.inner.get(), EvaluationInProgress) {
-                Unevaluated(producer) => *self.inner.get() = Evaluated(producer()),
+                Unevaluated(producer) => *self.inner.get() = Evaluated(producer.invoke()),
                 _ => debug_unreachable!()
             };
         }
@@ -64,10 +69,28 @@ impl<T> Thunk<T> {
     }
 }
 
+struct Producer<T> {
+    inner: Box<Invoke<(), T> + 'static>
+}
+
+impl<T> Producer<T> {
+    fn new<F: 'static + FnOnce() -> T>(f: F) -> Producer<T> {
+        Producer {
+            inner: box() (move |: ()| {
+                f()
+            }) as Box<Invoke<(), T> + 'static>
+        }
+    }
+
+    fn invoke(self) -> T {
+        self.inner.invoke(())
+    }
+}
+
 enum Inner<T> {
     Evaluated(T),
     EvaluationInProgress,
-    Unevaluated(proc(): 'static -> T)
+    Unevaluated(Producer<T>)
 }
 
 impl<T> Deref<T> for Thunk<T> {

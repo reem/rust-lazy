@@ -1,5 +1,6 @@
 use oncemutex::OnceMutex;
 use std::mem;
+use std::thunk::Invoke;
 
 use self::Inner::{Evaluated, EvaluationInProgress, Unevaluated};
 
@@ -20,18 +21,21 @@ impl<T: Send + Sync> Thunk<T> {
     /// ```rust
     /// # use lazy::sync::Thunk;
     /// # use std::sync::Arc;
-    /// let expensive = Thunk::new(proc() { println!("Evaluated!"); 7u });
+    /// let expensive = Thunk::new(|| { println!("Evaluated!"); 7u });
     /// let reff = Arc::new(expensive);
     /// let reff_clone = reff.clone();
     ///
     /// // Evaluated is printed sometime beneath this line.
-    /// spawn(proc() {
+    /// spawn(move || {
     ///     assert_eq!(**reff_clone, 7u);
     /// });
     /// assert_eq!(**reff, 7u);
     /// ```
-    pub fn new(producer: proc(): Send + Sync -> T) -> Thunk<T> {
-        Thunk { inner: OnceMutex::new(Unevaluated(producer)) }
+    pub fn new<F>(producer: F) -> Thunk<T>
+    where F: Send + Sync + FnOnce() -> T {
+        Thunk {
+            inner: OnceMutex::new(Unevaluated(Producer::new(producer)))
+        }
     }
 
     /// Create a new, evaluated, thunk from a value.
@@ -52,7 +56,7 @@ impl<T: Send + Sync> Thunk<T> {
             // We are the thread responsible for doing the evaluation.
             Some(mut lock) => {
                 match mem::replace(&mut *lock, EvaluationInProgress) {
-                    Unevaluated(producer) => *lock = Evaluated(producer()),
+                    Unevaluated(producer) => *lock = Evaluated(producer.invoke()),
                     // Since the OnceMutex only lets us get here once,
                     // it *must* contain Unevaluated.
                     _ => unsafe { debug_unreachable!() }
@@ -98,9 +102,27 @@ impl<T: Send + Sync> Deref<T> for Thunk<T> {
     }
 }
 
+struct Producer<T> {
+    inner: Box<Invoke<(), T> + Send + Sync>
+}
+
+impl<T> Producer<T> {
+    fn new<F: Send + Sync + FnOnce() -> T>(f: F) -> Producer<T> {
+        Producer {
+            inner: box() (move |: ()| {
+                f()
+            }) as Box<Invoke<(), T> + Send + Sync>
+        }
+    }
+
+    fn invoke(self) -> T {
+        self.inner.invoke(())
+    }
+}
+
 enum Inner<T> {
     Evaluated(T),
     EvaluationInProgress,
-    Unevaluated(proc(): Send + Sync -> T)
+    Unevaluated(Producer<T>)
 }
 

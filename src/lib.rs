@@ -1,5 +1,5 @@
 #![deny(missing_docs, warnings)]
-#![feature(unsafe_destructor, macro_rules, phase, globs)]
+#![feature(unsafe_destructor, macro_rules, phase, globs, default_type_params)]
 
 //! Lazy evaluation for Rust.
 
@@ -19,14 +19,14 @@ mod lazy {
 #[macro_export]
 macro_rules! lazy (
     ($e:expr) => {
-        ::lazy::single::Thunk::new(proc() { $e })
+        ::lazy::single::Thunk::new(move |:| { $e })
     }
 )
 
 #[macro_export]
 macro_rules! sync_lazy (
     ($e:expr) => {
-        ::lazy::sync::Thunk::new(proc() { $e })
+        ::lazy::sync::Thunk::new(move |:| { $e })
     }
 )
 

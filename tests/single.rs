@@ -55,9 +55,9 @@ describe! thunk {
         it "should drop internal data just once" {
             let counter = Arc::new(Mutex::new(0u64));
             let counter_clone = counter.clone();
-            match task::try(proc() {
+            match task::try(move || {
                 let value = Dropper(counter_clone);
-                let t = Thunk::<()>::new(proc() {
+                let t = Thunk::<()>::new(move || {
                     // Get a reference so value is captured.
                     let _x = &value;
 
