@@ -5,16 +5,18 @@
 ## Example
 
 ```rust
-fn expensive() -> uint { println!("I am only evaluated once!"); 7u }
+fn expensive() -> i32 {
+    println!("I am only evaluated once!"); 7
+}
 
 fn main() {
     let a = lazy!(expensive());
 
-    // Thunks act like smart pointers!
-    assert_eq!(*a, 7u); // "I am only evaluated once." is printed here
+    // Thunks are just smart pointers!
+    assert_eq!(*a, 7); // "I am only evaluated once." is printed here
 
     let b = [*a, *a]; // Nothing is printed.
-    assert_eq!(b, [7u, 7u]);
+    assert_eq!(b, [7, 7]);
 }
 ```
 
@@ -22,9 +24,9 @@ fn main() {
 
 > `lazy!($expr)`
 
-Expands to `Thunk::new(proc() { $expr })`
+Expands to `Thunk::new(|:| { $expr })`
 
-> `Thunk::new(proc() -> T)`
+> `Thunk::new(|:| -> T)`
 
 Takes a proc, creates a delayed computation.
 
@@ -46,5 +48,5 @@ an instance of the contained valued through auto-deref.
 
 There is also an equivalent API for `SyncThunk`, which is `Sync + Send` and
 usable for safe, concurrent laziness, except that they are created using
-`sync_lazy!` or by doing `use Thunk = lazy::SyncThunk` and using `lazy!`.
+`sync_lazy!` or by doing `use lazy::SyncThunk as Thunk` and using `lazy!`.
 
