@@ -1,6 +1,6 @@
+use std::ops::{Deref, DerefMut};
 use std::cell::UnsafeCell;
 use std::ptr;
-use std::kinds::marker;
 use std::thunk::Invoke;
 
 use self::Inner::{Evaluated, EvaluationInProgress, Unevaluated};
@@ -11,8 +11,9 @@ pub type Lazy<T> = Thunk<T>;
 /// A lazily evaluated value.
 pub struct Thunk<T> {
     inner: UnsafeCell<Inner<T>>,
-    noshare: marker::NoSync
 }
+
+impl<T> !Sync for Thunk<T> {}
 
 impl<T> Thunk<T> {
     /// Create a lazily evaluated value from a proc that returns that value.
@@ -30,13 +31,13 @@ impl<T> Thunk<T> {
     where F: 'static + FnOnce() -> T {
         Thunk {
             inner: UnsafeCell::new(Unevaluated(Producer::new(producer))),
-            noshare: marker::NoSync }
+        }
     }
 
 
     /// Create a new, evaluated, thunk from a value.
     pub fn evaluated(val: T) -> Thunk<T> {
-        Thunk { inner: UnsafeCell::new(Evaluated(val)), noshare: marker::NoSync }
+        Thunk { inner: UnsafeCell::new(Evaluated(val)) }
     }
 
     /// Force evaluation of a thunk.
@@ -76,7 +77,7 @@ struct Producer<T> {
 impl<T> Producer<T> {
     fn new<F: 'static + FnOnce() -> T>(f: F) -> Producer<T> {
         Producer {
-            inner: box() (move |: ()| {
+            inner: Box::new(move |: ()| {
                 f()
             }) as Box<Invoke<(), T> + 'static>
         }
@@ -93,7 +94,9 @@ enum Inner<T> {
     Unevaluated(Producer<T>)
 }
 
-impl<T> Deref<T> for Thunk<T> {
+impl<T> Deref for Thunk<T> {
+    type Target = T;
+
     fn deref<'a>(&'a self) -> &'a T {
         self.force();
         match unsafe { &*self.inner.get() } {
@@ -103,11 +106,11 @@ impl<T> Deref<T> for Thunk<T> {
     }
 }
 
-impl<T> DerefMut<T> for Thunk<T> {
+impl<T> DerefMut for Thunk<T> {
     fn deref_mut<'a>(&'a mut self) -> &'a mut T {
         self.force();
         match unsafe { &mut *self.inner.get() } {
-            &Evaluated(ref mut val) => val,
+            &mut Evaluated(ref mut val) => val,
             _ => unsafe { debug_unreachable!() }
         }
     }

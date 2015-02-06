@@ -1,3 +1,4 @@
+use std::ops::{Deref, DerefMut};
 use oncemutex::OnceMutex;
 use std::mem;
 use std::thunk::Invoke;
@@ -12,6 +13,8 @@ pub struct Thunk<T> {
     inner: OnceMutex<Inner<T>>
 }
 
+unsafe impl<T: Sync> Sync for Thunk<T> {}
+
 impl<T: Send + Sync> Thunk<T> {
     /// Create a new sync thunk.
     ///
@@ -21,12 +24,13 @@ impl<T: Send + Sync> Thunk<T> {
     /// ```rust
     /// # use lazy::sync::Thunk;
     /// # use std::sync::Arc;
+    /// # use std::thread::Thread;
     /// let expensive = Thunk::new(|| { println!("Evaluated!"); 7u });
     /// let reff = Arc::new(expensive);
     /// let reff_clone = reff.clone();
     ///
     /// // Evaluated is printed sometime beneath this line.
-    /// spawn(move || {
+    /// Thread::spawn(move || {
     ///     assert_eq!(**reff_clone, 7u);
     /// });
     /// assert_eq!(**reff, 7u);
@@ -73,7 +77,7 @@ impl<T: Send + Sync> Thunk<T> {
     }
 }
 
-impl<T: Send + Sync> DerefMut<T> for Thunk<T> {
+impl<T: Send + Sync> DerefMut for Thunk<T> {
     fn deref_mut(&mut self) -> &mut T {
         self.force();
         match *&mut*self.inner {
@@ -89,7 +93,9 @@ impl<T: Send + Sync> DerefMut<T> for Thunk<T> {
     }
 }
 
-impl<T: Send + Sync> Deref<T> for Thunk<T> {
+impl<T: Send + Sync> Deref for Thunk<T> {
+    type Target = T;
+
     fn deref(&self) -> &T {
         self.force();
         match *self.inner {
@@ -109,7 +115,7 @@ struct Producer<T> {
 impl<T> Producer<T> {
     fn new<F: Send + Sync + FnOnce() -> T>(f: F) -> Producer<T> {
         Producer {
-            inner: box() (move |: ()| {
+            inner: Box::new(move |: ()| {
                 f()
             }) as Box<Invoke<(), T> + Send + Sync>
         }

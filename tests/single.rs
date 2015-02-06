@@ -1,61 +1,56 @@
-#![feature(phase)]
-#[phase(plugin, link)]
+#![feature(plugin, std_misc)]
+
+#[macro_use]
 extern crate lazy;
-#[phase(plugin)]
+
+#[plugin]
 extern crate stainless;
 
 pub use lazy::single::Thunk;
 pub use std::sync::{Arc, Mutex};
-pub use std::task;
+pub use std::thread::{self, Thread};
 
 describe! thunk {
     it "should evaluate when accessed" {
-        let val = lazy!(7i);
-        assert_eq!(*val, 7i);
+        let val = lazy!(7);
+        assert_eq!(*val, 7);
     }
 
     it "should evaluate just once" {
-        let counter = Arc::new(Mutex::new(0i));
+        let counter = Arc::new(Mutex::new(0));
         let counter_clone = counter.clone();
-        let val = lazy!(*counter.lock() += 1);
+        let val = lazy!(*counter.lock().unwrap() += 1);
         *val;
         *val;
-        assert_eq!(*counter_clone.lock(), 1i);
+        assert_eq!(*counter_clone.lock().unwrap(), 1);
     }
 
     it "should not evaluate if not accessed" {
-        let counter = Arc::new(Mutex::new(0i));
+        let counter = Arc::new(Mutex::new(0));
         let counter_clone = counter.clone();
-        let _val = lazy!(*counter.lock() += 1);
-        assert_eq!(*counter_clone.lock(), 0i);
-    }
-
-    describe! methods {
-        it "should allow mutable trait methods" {
-            let mut val = lazy!(7u);
-            val.mutable_borrow_method();
-        }
+        let _val = lazy!(*counter.lock().unwrap() += 1);
+        assert_eq!(*counter_clone.lock().unwrap(), 0);
     }
 
     describe! unwrap {
         it "should retrieve the value" {
-            let val = lazy!(7u);
-            assert_eq!(val.unwrap(), 7u);
+            let val = lazy!(7);
+            assert_eq!(val.unwrap(), 7);
         }
     }
 
     describe! evaluated {
         it "should produce an already evaluated thunk" {
-            let x = Thunk::evaluated(10u);
-            assert_eq!(*x, 10u);
+            let x = Thunk::evaluated(10);
+            assert_eq!(*x, 10);
         }
     }
 
     describe! drop {
         it "should drop internal data just once" {
-            let counter = Arc::new(Mutex::new(0u64));
+            let counter = Arc::new(Mutex::new(0));
             let counter_clone = counter.clone();
-            match task::try(move || {
+            let result =  Thread::scoped(move || {
                 let value = Dropper(counter_clone);
                 let t = Thunk::<()>::new(move || {
                     // Get a reference so value is captured.
@@ -64,9 +59,11 @@ describe! thunk {
                     panic!("Muahahahah")
                 });
                 t.force();
-            }) {
+            }).join();
+
+            match result {
                 Err(_) => {
-                    assert_eq!(*counter.lock(), 1);
+                    assert_eq!(*counter.lock().unwrap(), 1);
                 },
                 _ => panic!("Unexpected success in spawned task.")
             }
@@ -74,31 +71,12 @@ describe! thunk {
     }
 }
 
-pub trait ImmutableReferenceTrait {
-    fn borrow_method(&self) { () }
-}
-
-impl ImmutableReferenceTrait for uint {}
-
-#[test]
-fn test_call_trait_methods() {
-    let val = lazy!(7u);
-    val.borrow_method();
-}
-
-pub trait MutableReferenceTrait {
-    fn mutable_borrow_method(&mut self) { () }
-}
-
-impl MutableReferenceTrait for uint {}
-
 pub struct Dropper(Arc<Mutex<u64>>);
 
 impl Drop for Dropper {
     fn drop(&mut self) {
         let Dropper(ref count) = *self;
-        *count.lock() += 1;
-        assert!(task::failing())
+        *count.lock().unwrap() += 1;
     }
 }
 

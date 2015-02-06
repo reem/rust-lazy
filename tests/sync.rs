@@ -1,60 +1,63 @@
-#![feature(phase)]
-#[phase(plugin, link)]
+#![feature(plugin, std_misc, io)]
+
+#[macro_use]
 extern crate lazy;
-#[phase(plugin)]
+
+#[plugin]
 extern crate stainless;
 
 pub use lazy::sync::Thunk;
 pub use std::sync::{Arc, Barrier, Mutex};
-pub use std::{io, time};
+pub use std::{old_io, time};
+pub use std::thread::Thread;
 
 describe! sync {
     it "should evaluate when accessed" {
-        let val = sync_lazy!(7i);
-        assert_eq!(*val, 7i);
+        let val = sync_lazy!(7);
+        assert_eq!(*val, 7);
     }
 
     it "should evaluate just once" {
-        let counter = Arc::new(Mutex::new(0i));
+        let counter = Arc::new(Mutex::new(0));
         let counter_clone = counter.clone();
-        let val = sync_lazy!(*counter.lock() += 1);
+        let val = sync_lazy!(*counter.lock().unwrap() += 1);
         *val;
         *val;
-        assert_eq!(*counter_clone.lock(), 1i);
+        assert_eq!(*counter_clone.lock().unwrap(), 1);
     }
 
     it "should not evaluate if not accessed" {
-        let counter = Arc::new(Mutex::new(0i));
+        let counter = Arc::new(Mutex::new(0));
         let counter_clone = counter.clone();
-        let _val = sync_lazy!(*counter.lock() += 1);
-        assert_eq!(*counter_clone.lock(), 0i);
+        let _val = sync_lazy!(*counter.lock().unwrap() += 1);
+        assert_eq!(*counter_clone.lock().unwrap(), 0);
     }
 
     it "should be send and sync" {
-        Arc::new(sync_lazy!(0u));
+        Arc::new(sync_lazy!(0));
     }
 
     it "should be safe to access while evaluating" {
         let data = Arc::new(sync_lazy!({
-            io::timer::sleep(time::Duration::milliseconds(50));
-            5u
+            old_io::timer::sleep(time::Duration::milliseconds(50));
+            5
         }));
 
         let data_worker = data.clone();
 
         // Worker task.
-        spawn(move || {
+        Thread::spawn(move || {
             data_worker.force();
         });
 
         // Try to access the data while it is evaulating.
-        assert_eq!(5u, **data);
+        assert_eq!(5, **data);
     }
 
     describe! evaluated {
         it "should create an already evaluated thunk" {
-            let x = Thunk::evaluated(10u);
-            assert_eq!(*x, 10u);
+            let x = Thunk::evaluated(10);
+            assert_eq!(*x, 10);
         }
     }
 }

@@ -1,9 +1,11 @@
 #![deny(missing_docs, warnings)]
-#![feature(unsafe_destructor, macro_rules, phase, globs, default_type_params)]
+#![feature(core, std_misc, unsafe_destructor, optin_builtin_traits)]
 
 //! Lazy evaluation for Rust.
 
-#[phase(plugin)] extern crate debug_unreachable;
+#[macro_use(debug_unreachable)]
+extern crate debug_unreachable;
+
 extern crate oncemutex;
 
 /// A Thunk safe for single-threaded access.
@@ -17,16 +19,16 @@ mod lazy {
 }
 
 #[macro_export]
-macro_rules! lazy (
+macro_rules! lazy {
     ($e:expr) => {
         ::lazy::single::Thunk::new(move |:| { $e })
     }
-)
+}
 
 #[macro_export]
-macro_rules! sync_lazy (
+macro_rules! sync_lazy {
     ($e:expr) => {
         ::lazy::sync::Thunk::new(move |:| { $e })
     }
-)
+}
 
