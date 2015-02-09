@@ -115,7 +115,7 @@ struct Producer<T> {
 impl<T> Producer<T> {
     fn new<F: Send + Sync + FnOnce() -> T>(f: F) -> Producer<T> {
         Producer {
-            inner: Box::new(move |: ()| {
+            inner: Box::new(move |()| {
                 f()
             }) as Box<Invoke<(), T> + Send + Sync>
         }
