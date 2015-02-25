@@ -24,11 +24,11 @@ fn main() {
 
 > `lazy!($expr)`
 
-Expands to `Thunk::new(|:| { $expr })`
+Expands to `Thunk::new(|| { $expr })`
 
-> `Thunk::new(|:| -> T)`
+> `Thunk::new(|| -> T)`
 
-Takes a proc, creates a delayed computation.
+Takes an FnOnce closure, creates a delayed computation.
 
 > `Thunk::force()`
 
@@ -42,11 +42,11 @@ value.
 
 > `Thunk::deref()` / `Thunk::deref_mut()`
 
-Gets the value out of the thunk by evaluating the proc or grabbing it
+Gets the value out of the thunk by evaluating the closure or grabbing it
 from the cache. Allows you to call methods on the thunk as if it was
 an instance of the contained valued through auto-deref.
 
-There is also an equivalent API for `SyncThunk`, which is `Sync + Send` and
+There is also an equivalent API for `SyncThunk`, which is `Send + Sync` and
 usable for safe, concurrent laziness, except that they are created using
 `sync_lazy!` or by doing `use lazy::SyncThunk as Thunk` and using `lazy!`.
 

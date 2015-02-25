@@ -21,14 +21,14 @@ mod lazy {
 #[macro_export]
 macro_rules! lazy {
     ($e:expr) => {
-        ::lazy::single::Thunk::new(move || { $e })
+        $crate::single::Thunk::new(move || { $e })
     }
 }
 
 #[macro_export]
 macro_rules! sync_lazy {
     ($e:expr) => {
-        ::lazy::sync::Thunk::new(move || { $e })
+        $crate::sync::Thunk::new(move || { $e })
     }
 }
 
