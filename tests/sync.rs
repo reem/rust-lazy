@@ -1,15 +1,13 @@
-#![feature(plugin, std_misc, io)]
+#![feature(plugin, std_misc, old_io)]
+#![plugin(stainless)]
 
 #[macro_use]
 extern crate lazy;
 
-#[plugin]
-extern crate stainless;
-
 pub use lazy::sync::Thunk;
 pub use std::sync::{Arc, Barrier, Mutex};
 pub use std::{old_io, time};
-pub use std::thread::Thread;
+pub use std::thread;
 
 describe! sync {
     it "should evaluate when accessed" {
@@ -20,7 +18,10 @@ describe! sync {
     it "should evaluate just once" {
         let counter = Arc::new(Mutex::new(0));
         let counter_clone = counter.clone();
-        let val = sync_lazy!(*counter.lock().unwrap() += 1);
+        let val = sync_lazy!({
+            let mut data = counter.lock().unwrap();
+            *data += 1;
+        });
         *val;
         *val;
         assert_eq!(*counter_clone.lock().unwrap(), 1);
@@ -29,7 +30,10 @@ describe! sync {
     it "should not evaluate if not accessed" {
         let counter = Arc::new(Mutex::new(0));
         let counter_clone = counter.clone();
-        let _val = sync_lazy!(*counter.lock().unwrap() += 1);
+        let _val = sync_lazy!({
+            let mut data = counter.lock().unwrap();
+            *data += 1;
+        });
         assert_eq!(*counter_clone.lock().unwrap(), 0);
     }
 
@@ -46,7 +50,7 @@ describe! sync {
         let data_worker = data.clone();
 
         // Worker task.
-        Thread::spawn(move || {
+        thread::spawn(move || {
             data_worker.force();
         });
 
@@ -61,4 +65,3 @@ describe! sync {
         }
     }
 }
-

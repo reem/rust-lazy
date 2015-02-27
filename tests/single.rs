@@ -1,14 +1,12 @@
-#![feature(plugin, std_misc)]
+#![feature(plugin)]
+#![plugin(stainless)]
 
 #[macro_use]
 extern crate lazy;
 
-#[plugin]
-extern crate stainless;
-
 pub use lazy::single::Thunk;
 pub use std::sync::{Arc, Mutex};
-pub use std::thread::{self, Thread};
+pub use std::thread;
 
 describe! thunk {
     it "should evaluate when accessed" {
@@ -19,7 +17,10 @@ describe! thunk {
     it "should evaluate just once" {
         let counter = Arc::new(Mutex::new(0));
         let counter_clone = counter.clone();
-        let val = lazy!(*counter.lock().unwrap() += 1);
+        let val = lazy!({
+            let mut data = counter.lock().unwrap();
+            *data += 1;
+        });
         *val;
         *val;
         assert_eq!(*counter_clone.lock().unwrap(), 1);
@@ -28,7 +29,10 @@ describe! thunk {
     it "should not evaluate if not accessed" {
         let counter = Arc::new(Mutex::new(0));
         let counter_clone = counter.clone();
-        let _val = lazy!(*counter.lock().unwrap() += 1);
+        let _val = lazy!({
+            let mut data = counter.lock().unwrap();
+            *data += 1;
+        });
         assert_eq!(*counter_clone.lock().unwrap(), 0);
     }
 
@@ -50,7 +54,7 @@ describe! thunk {
         it "should drop internal data just once" {
             let counter = Arc::new(Mutex::new(0));
             let counter_clone = counter.clone();
-            let result =  Thread::scoped(move || {
+            let result = thread::spawn(move || {
                 let value = Dropper(counter_clone);
                 let t = Thunk::<()>::new(move || {
                     // Get a reference so value is captured.
@@ -79,4 +83,3 @@ impl Drop for Dropper {
         *count.lock().unwrap() += 1;
     }
 }
-

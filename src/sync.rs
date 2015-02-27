@@ -35,7 +35,7 @@ impl<T: Send + Sync> Thunk<T> {
     /// });
     /// assert_eq!(**reff, 7u);
     /// ```
-    pub fn new<F>(producer: F) -> Thunk<T>
+    pub fn new<F: 'static>(producer: F) -> Thunk<T>
     where F: Send + Sync + FnOnce() -> T {
         Thunk {
             inner: OnceMutex::new(Unevaluated(Producer::new(producer)))
@@ -113,7 +113,7 @@ struct Producer<T> {
 }
 
 impl<T> Producer<T> {
-    fn new<F: Send + Sync + FnOnce() -> T>(f: F) -> Producer<T> {
+    fn new<F: 'static + Send + Sync + FnOnce() -> T>(f: F) -> Producer<T> {
         Producer {
             inner: Box::new(move |()| {
                 f()
@@ -131,4 +131,3 @@ enum Inner<T> {
     EvaluationInProgress,
     Unevaluated(Producer<T>)
 }
-
