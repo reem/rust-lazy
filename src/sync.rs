@@ -6,16 +6,16 @@ use std::thunk::Invoke;
 use self::Inner::{Evaluated, EvaluationInProgress, Unevaluated};
 
 /// A sometimes cleaner name.
-pub type Lazy<T> = Thunk<T>;
+pub type Lazy<'a,T> = Thunk<'a,T>;
 
 /// Sync, Send lazy data.
-pub struct Thunk<T> {
-    inner: OnceMutex<Inner<T>>
+pub struct Thunk<'a, T> {
+    inner: OnceMutex<Inner<'a, T>>
 }
 
-unsafe impl<T: Sync> Sync for Thunk<T> {}
+unsafe impl<'a, T: Sync> Sync for Thunk<'a, T> {}
 
-impl<T: Send + Sync> Thunk<T> {
+impl<'a, T: Send + Sync> Thunk<'a, T> {
     /// Create a new sync thunk.
     ///
     /// You can construct Thunk's manually using this, but the
@@ -35,7 +35,7 @@ impl<T: Send + Sync> Thunk<T> {
     /// });
     /// assert_eq!(**reff, 7u);
     /// ```
-    pub fn new<F: 'static>(producer: F) -> Thunk<T>
+    pub fn new<F: 'a>(producer: F) -> Thunk<'a, T>
     where F: Send + Sync + FnOnce() -> T {
         Thunk {
             inner: OnceMutex::new(Unevaluated(Producer::new(producer)))
@@ -43,7 +43,7 @@ impl<T: Send + Sync> Thunk<T> {
     }
 
     /// Create a new, evaluated, thunk from a value.
-    pub fn evaluated(val: T) -> Thunk<T> {
+    pub fn evaluated(val: T) -> Thunk<'a, T> {
         let mutex = OnceMutex::new(Evaluated(val));
 
         // Since we use the invariants of the OnceMutex later,
@@ -77,7 +77,7 @@ impl<T: Send + Sync> Thunk<T> {
     }
 }
 
-impl<T: Send + Sync> DerefMut for Thunk<T> {
+impl<'a, T: Send + Sync> DerefMut for Thunk<'a, T> {
     fn deref_mut(&mut self) -> &mut T {
         self.force();
         match *&mut*self.inner {
@@ -93,7 +93,7 @@ impl<T: Send + Sync> DerefMut for Thunk<T> {
     }
 }
 
-impl<T: Send + Sync> Deref for Thunk<T> {
+impl<'a,T: Send + Sync> Deref for Thunk<'a,T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -108,12 +108,12 @@ impl<T: Send + Sync> Deref for Thunk<T> {
     }
 }
 
-struct Producer<T> {
-    inner: Box<Invoke<(), T> + Send + Sync>
+struct Producer<'a,T> {
+    inner: Box<Invoke<(), T> + Send + Sync + 'a>
 }
 
-impl<T> Producer<T> {
-    fn new<F: 'static + Send + Sync + FnOnce() -> T>(f: F) -> Producer<T> {
+impl<'a,T> Producer<'a, T> {
+    fn new<F: 'a + Send + Sync + FnOnce() -> T>(f: F) -> Producer<'a, T> {
         Producer {
             inner: Box::new(move |()| {
                 f()
@@ -126,8 +126,8 @@ impl<T> Producer<T> {
     }
 }
 
-enum Inner<T> {
+enum Inner<'a,T> {
     Evaluated(T),
     EvaluationInProgress,
-    Unevaluated(Producer<T>)
+    Unevaluated(Producer<'a,T>)
 }

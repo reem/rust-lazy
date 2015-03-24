@@ -6,16 +6,16 @@ use std::thunk::Invoke;
 use self::Inner::{Evaluated, EvaluationInProgress, Unevaluated};
 
 /// A sometimes-cleaner name for a lazily evaluated value.
-pub type Lazy<T> = Thunk<T>;
+pub type Lazy<'a, T> = Thunk<'a, T>;
 
 /// A lazily evaluated value.
-pub struct Thunk<T> {
-    inner: UnsafeCell<Inner<T>>,
+pub struct Thunk<'a, T> {
+    inner: UnsafeCell<Inner<'a, T>>,
 }
 
-impl<T> !Sync for Thunk<T> {}
+impl<'a, T> !Sync for Thunk<'a, T> {}
 
-impl<T> Thunk<T> {
+impl<'a, T> Thunk<'a, T> {
     /// Create a lazily evaluated value from a proc that returns that value.
     ///
     /// You can construct Thunk's manually using this, but the lazy! macro
@@ -27,8 +27,8 @@ impl<T> Thunk<T> {
     /// assert_eq!(*expensive, 7u); // "Evaluated!" gets printed here.
     /// assert_eq!(*expensive, 7u); // Nothing printed.
     /// ```
-    pub fn new<F>(producer: F) -> Thunk<T>
-    where F: 'static + FnOnce() -> T {
+    pub fn new<F>(producer: F) -> Thunk<'a, T>
+    where F: 'a + FnOnce() -> T {
         Thunk {
             inner: UnsafeCell::new(Unevaluated(Producer::new(producer))),
         }
@@ -36,7 +36,7 @@ impl<T> Thunk<T> {
 
 
     /// Create a new, evaluated, thunk from a value.
-    pub fn evaluated(val: T) -> Thunk<T> {
+    pub fn evaluated<'b>(val: T) -> Thunk<'b, T> {
         Thunk { inner: UnsafeCell::new(Evaluated(val)) }
     }
 
@@ -70,16 +70,16 @@ impl<T> Thunk<T> {
     }
 }
 
-struct Producer<T> {
-    inner: Box<Invoke<(), T> + 'static>
+struct Producer<'a, T> {
+    inner: Box<Invoke<(), T> + 'a>
 }
 
-impl<T> Producer<T> {
-    fn new<F: 'static + FnOnce() -> T>(f: F) -> Producer<T> {
+impl<'a,T> Producer<'a,T> {
+    fn new<F: 'a + FnOnce() -> T>(f: F) -> Producer<'a,T> {
         Producer {
             inner: Box::new(move |()| {
                 f()
-            }) as Box<Invoke<(), T> + 'static>
+            }) as Box<Invoke<(), T>>
         }
     }
 
@@ -88,13 +88,13 @@ impl<T> Producer<T> {
     }
 }
 
-enum Inner<T> {
+enum Inner<'a, T> {
     Evaluated(T),
     EvaluationInProgress,
-    Unevaluated(Producer<T>)
+    Unevaluated(Producer<'a, T>)
 }
 
-impl<T> Deref for Thunk<T> {
+impl<'x, T> Deref for Thunk<'x, T> {
     type Target = T;
 
     fn deref<'a>(&'a self) -> &'a T {
@@ -106,7 +106,7 @@ impl<T> Deref for Thunk<T> {
     }
 }
 
-impl<T> DerefMut for Thunk<T> {
+impl<'x, T> DerefMut for Thunk<'x, T> {
     fn deref_mut<'a>(&'a mut self) -> &'a mut T {
         self.force();
         match unsafe { &mut *self.inner.get() } {
@@ -115,4 +115,3 @@ impl<T> DerefMut for Thunk<T> {
         }
     }
 }
-
