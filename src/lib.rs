@@ -1,5 +1,5 @@
 #![deny(missing_docs, warnings)]
-#![feature(core, std_misc, unsafe_destructor, optin_builtin_traits)]
+#![feature(core)]
 
 //! Lazy evaluation for Rust.
 
@@ -13,6 +13,8 @@ pub mod single;
 
 /// A Thunk safe for multi-threaded use.
 pub mod sync;
+
+mod fnbox;
 
 mod lazy {
     pub use super::*;

@@ -1,9 +1,9 @@
 use std::ops::{Deref, DerefMut};
 use oncemutex::OnceMutex;
 use std::mem;
-use std::thunk::Invoke;
 
 use self::Inner::{Evaluated, EvaluationInProgress, Unevaluated};
+use fnbox::FnBox;
 
 /// A sometimes cleaner name.
 pub type Lazy<'a,T> = Thunk<'a,T>;
@@ -24,16 +24,16 @@ impl<'a, T: Send + Sync> Thunk<'a, T> {
     /// ```rust
     /// # use lazy::sync::Thunk;
     /// # use std::sync::Arc;
-    /// # use std::thread::Thread;
-    /// let expensive = Thunk::new(|| { println!("Evaluated!"); 7u });
+    /// # use std::thread;
+    /// let expensive = Thunk::new(|| { println!("Evaluated!"); 7 });
     /// let reff = Arc::new(expensive);
     /// let reff_clone = reff.clone();
     ///
     /// // Evaluated is printed sometime beneath this line.
-    /// Thread::spawn(move || {
-    ///     assert_eq!(**reff_clone, 7u);
+    /// thread::spawn(move || {
+    ///     assert_eq!(**reff_clone, 7);
     /// });
-    /// assert_eq!(**reff, 7u);
+    /// assert_eq!(**reff, 7);
     /// ```
     pub fn new<F: 'a>(producer: F) -> Thunk<'a, T>
     where F: Send + Sync + FnOnce() -> T {
@@ -80,12 +80,8 @@ impl<'a, T: Send + Sync> Thunk<'a, T> {
 impl<'a, T: Send + Sync> DerefMut for Thunk<'a, T> {
     fn deref_mut(&mut self) -> &mut T {
         self.force();
-        match *&mut*self.inner {
-            // Safe because getting this &'a mut T requires &'a mut self.
-            //
-            // We can't use copy_mut_lifetime here because self is already
-            // borrowed as &mut by val.
-            Evaluated(ref mut val) => unsafe { mem::transmute(val) },
+        match &mut *self.inner {
+            &mut Evaluated(ref mut val) => val,
 
             // We just forced this thunk.
             _ => unsafe { debug_unreachable!() }
@@ -99,8 +95,7 @@ impl<'a,T: Send + Sync> Deref for Thunk<'a,T> {
     fn deref(&self) -> &T {
         self.force();
         match *self.inner {
-            // Safe because getting this &'a T requires &'a self.
-            Evaluated(ref val) => unsafe { mem::copy_lifetime(self, val) },
+            Evaluated(ref val) => val,
 
             // We just forced this thunk.
             _ => unsafe { debug_unreachable!() }
@@ -109,20 +104,16 @@ impl<'a,T: Send + Sync> Deref for Thunk<'a,T> {
 }
 
 struct Producer<'a,T> {
-    inner: Box<Invoke<(), T> + Send + Sync + 'a>
+    inner: Box<FnBox<Output=T> + Send + Sync + 'a>
 }
 
 impl<'a,T> Producer<'a, T> {
     fn new<F: 'a + Send + Sync + FnOnce() -> T>(f: F) -> Producer<'a, T> {
-        Producer {
-            inner: Box::new(move |()| {
-                f()
-            }) as Box<Invoke<(), T> + Send + Sync>
-        }
+        Producer { inner: Box::new(f) }
     }
 
     fn invoke(self) -> T {
-        self.inner.invoke(())
+        self.inner.call_box(())
     }
 }
 
