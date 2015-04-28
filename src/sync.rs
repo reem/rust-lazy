@@ -80,12 +80,8 @@ impl<'a, T: Send + Sync> Thunk<'a, T> {
 impl<'a, T: Send + Sync> DerefMut for Thunk<'a, T> {
     fn deref_mut(&mut self) -> &mut T {
         self.force();
-        match *&mut*self.inner {
-            // Safe because getting this &'a mut T requires &'a mut self.
-            //
-            // We can't use copy_mut_lifetime here because self is already
-            // borrowed as &mut by val.
-            Evaluated(ref mut val) => unsafe { mem::transmute(val) },
+        match &mut *self.inner {
+            &mut Evaluated(ref mut val) => val,
 
             // We just forced this thunk.
             _ => unsafe { debug_unreachable!() }
@@ -99,8 +95,7 @@ impl<'a,T: Send + Sync> Deref for Thunk<'a,T> {
     fn deref(&self) -> &T {
         self.force();
         match *self.inner {
-            // Safe because getting this &'a T requires &'a self.
-            Evaluated(ref val) => unsafe { mem::copy_lifetime(self, val) },
+            Evaluated(ref val) => val,
 
             // We just forced this thunk.
             _ => unsafe { debug_unreachable!() }

@@ -13,8 +13,6 @@ pub struct Thunk<'a, T> {
     inner: UnsafeCell<Inner<'a, T>>,
 }
 
-impl<'a, T> !Sync for Thunk<'a, T> {}
-
 impl<'a, T> Thunk<'a, T> {
     /// Create a lazily evaluated value from a proc that returns that value.
     ///
@@ -63,7 +61,7 @@ impl<'a, T> Thunk<'a, T> {
         self.force();
         unsafe {
             match self.inner.into_inner() {
-                Evaluated(val) => { val },
+                Evaluated(val) => val,
                 _ => debug_unreachable!()
             }
         }
